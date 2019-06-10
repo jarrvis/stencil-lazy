@@ -1,7 +1,13 @@
 import { getElement } from "@stencil/core";
-import { ComponentInstance } from "@stencil/core/dist/declarations";
+import {
+  ComponentInstance,
+  HTMLStencilElement
+} from "@stencil/core/dist/declarations";
 
-declare type LazyDecorator = (target: ComponentInstance, propertyKey: string) => void
+declare type LazyDecorator = (
+  target: ComponentInstance,
+  propertyKey: string
+) => void;
 
 /**
  * Call this function as soon as the element is inside the viewport.
@@ -23,13 +29,13 @@ lazyCallback() {
  */
 export function Lazy(options?: LazyOptions): LazyDecorator {
   return (proto: ComponentInstance, methodName: string) => {
-    const { componentDidLoad  } = proto;
-    proto.componentDidLoad  = function() {
+    const { render } = proto;
+    proto.render = function() {
       const host = getElement(this);
       const method = this[methodName];
-      const margin = options ? options.margin : '';
+      const margin = options ? options.margin : "";
       registerLazy(host, method, margin);
-      return componentDidLoad && componentDidLoad.call(this);
+      return render && render.call(this);
     };
   };
 }
@@ -38,31 +44,37 @@ export function Lazy(options?: LazyOptions): LazyDecorator {
  * Register callback function for HTMLElement to be executed when the element is inside the viewport.
  *
  */
-export function registerLazy(element: HTMLElement, callback: () => void, marginProp?: string): void {
-
-  if ("IntersectionObserver" in window) {
-    const margin = getValidMargin(marginProp)
-    if (!margin) {
-      throw new Error(
-        "@Lazy() decorator's optional parameter 'margin' is given but not valid. It should be a string like CSS margin property, e.g. '10px 20px 30px 40px'(top, right, bottom, left) or just '10px' (all). The values can be percentages "
+export function registerLazy(
+  element: HTMLLazyElement,
+  callback: () => void,
+  marginProp?: string
+): void {
+  if (!element.lazyRegistered) {
+    if ("IntersectionObserver" in window) {
+      const margin = getValidMargin(marginProp);
+      if (!margin) {
+        throw new Error(
+          "@Lazy() decorator's optional parameter 'margin' is given but not valid. It should be a string like CSS margin property, e.g. '10px 20px 30px 40px'(top, right, bottom, left) or just '10px' (all). The values can be percentages "
+        );
+      }
+      let io = new IntersectionObserver(
+        (data: any) => {
+          if (data[0].isIntersecting) {
+            callback.call(this);
+            io.disconnect();
+            io = null;
+          }
+        },
+        { rootMargin: margin }
       );
+      io.observe(element);
+    } else {
+      // fall back to setTimeout for Safari and IE
+      setTimeout(() => {
+        callback.call(this);
+      }, 300);
     }
-    let io = new IntersectionObserver(
-      (data: any) => {
-        if (data[0].isIntersecting) {
-          callback.call(this);
-          io.disconnect();
-          io = null;
-        }
-      },
-      { rootMargin: margin }
-    );
-    io.observe(element);
-  } else {
-    // fall back to setTimeout for Safari and IE
-    setTimeout(() => {
-      callback.call(this);
-    }, 300);
+    element.lazyRegistered = true;
   }
 }
 
@@ -72,12 +84,17 @@ export function registerLazy(element: HTMLElement, callback: () => void, marginP
  * @param margin Determines how far from the viewport lazy loading starts
  */
 export function getValidMargin(margin?): string {
-  const marginString = margin || '0px';
-  return marginString.split(/\s+/).every((margin) => {
-      /^(-?\d*\.?\d+)(px|%)$/.exec(margin);
-    }) ? marginString : null;
+  const regexp = RegExp(/^(-?\d*\.?\d+)(px|%)$/);
+  const marginString = margin || "0px";
+  return marginString.split(/\s+/).every(margin => regexp.test(margin))
+    ? marginString
+    : null;
 }
 
 export interface LazyOptions {
   margin?: string;
+}
+
+export interface HTMLLazyElement extends HTMLStencilElement {
+  lazyRegistered?: boolean;
 }
