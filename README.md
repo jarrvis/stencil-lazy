@@ -19,12 +19,11 @@ npm i stencil-lazy
 ```
 
 ## How to use it?
-It's very simple: you just need to anotate your method with `@Lazy` and it will be called when host component is scrolled to viewport. Method will be called once - the first time you scroll to component. Additionally you need to pass host's `@Element`. You can do it in two ways:
+It's very simple: you just need to anotate your method with `@Lazy` and it will be called when host component is scrolled to viewport. Method will be called once - the first time you scroll to component
 
-Option 1: passing host element with `@LazyHost`
 ```javascript
 
-import { Component, Element } from '@stencil/core';
+import { Component } from '@stencil/core';
 import { Lazy } from 'stencil-lazy';
 
 @Component({ tag: 'lazy-component', shadow: true })
@@ -34,6 +33,28 @@ export class LazyComponent {
   someMethod() { console.log("someMethod was called because user scrolled to LazyComponent"); }
 
   render() { return <div>Hello, World!</div>; }
+}
+```
+
+It may sometimes happen that you would like monitor for some HTMLElement that you render in component. This is also possible the API then is as follows:
+
+```javascript
+
+import { Component } from '@stencil/core';
+import { registerLazy } from 'stencil-lazy';
+
+@Component({ tag: 'lazy-component', shadow: true })
+export class LazyComponent {
+
+  someMethod() { console.log("someMethod was called because user scrolled to LazyComponent"); }
+
+  render() { 
+    return (
+            <div 
+              ref={divEl => registerLazy(divEl, () => this.someMethod())}>
+                Hello, World!
+            </div>;
+      ) 
 }
 ```
 
