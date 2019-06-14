@@ -34,7 +34,7 @@ export function Lazy(options?: LazyOptions): LazyDecorator {
       const host = getElement(this);
       const method = this[methodName];
       const margin = options ? options.margin : "";
-      registerLazy(host, method, margin);
+      registerLazy(this, host, method, margin);
       return render && render.call(this);
     };
   };
@@ -45,6 +45,7 @@ export function Lazy(options?: LazyOptions): LazyDecorator {
  *
  */
 export function registerLazy(
+  component: ComponentInstance,
   element: HTMLLazyElement,
   callback: () => void,
   marginProp?: string
@@ -60,7 +61,7 @@ export function registerLazy(
       let io = new IntersectionObserver(
         (data: any) => {
           if (data[0].isIntersecting) {
-            callback.call(this);
+            callback.call(component);
             io.disconnect();
             io = null;
           }
@@ -71,7 +72,7 @@ export function registerLazy(
     } else {
       // fall back to setTimeout for Safari and IE
       setTimeout(() => {
-        callback.call(this);
+        callback.call(component);
       }, 300);
     }
     element.lazyRegistered = true;

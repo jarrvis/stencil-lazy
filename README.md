@@ -51,7 +51,7 @@ export class LazyComponent {
   render() { 
     return (
             <div 
-              ref={divEl => registerLazy(divEl, () => this.someMethod())}>
+              ref={divEl => registerLazy(this, divEl, () => this.someMethod())}>
                 Hello, World!
             </div>;
       ) 
